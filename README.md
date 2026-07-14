@@ -2,7 +2,6 @@
 
 A CLI tool that recursively extracts file names and paths from a publicly shared Dropbox folder (including all nested subfolders). Outputs CSV or JSON.
 
-> **Note on URLs:** Dropbox doesn't expose individual file URLs for files inside someone else's shared folder. The output includes the file name, its full path within the folder, and the root shared folder URL so anyone can navigate to the file.
 
 ## Quickstart
 
@@ -16,8 +15,12 @@ cd dropbox-extractor
 ### 2. Install dependencies
 
 ```bash
-pip3 install -r requirements.txt
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
+
+> **Every time you open a new terminal window**, `cd` into the project folder and run `source venv/bin/activate` before running the script.
 
 ### 3. Get a Dropbox API token
 
