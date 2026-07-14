@@ -1,13 +1,15 @@
 # dropbox-extractor
 
-A CLI tool that recursively extracts file names, paths, and URLs from a publicly shared Dropbox folder (including all nested subfolders). Outputs CSV or JSON.
+A CLI tool that recursively extracts file names and paths from a publicly shared Dropbox folder (including all nested subfolders). Outputs CSV or JSON.
+
+> **Note on URLs:** Dropbox doesn't expose individual file URLs for files inside someone else's shared folder. The output includes the file name, its full path within the folder, and the root shared folder URL so anyone can navigate to the file.
 
 ## Quickstart
 
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_ORG/dropbox-extractor
+git clone https://github.com/335emily/dropbox-extractor
 cd dropbox-extractor
 ```
 
@@ -29,14 +31,14 @@ You need your own free API token — **do not share or reuse someone else's**.
 6. Go to the **Settings** tab → scroll to **OAuth 2** → click **Generate** under "Generated access token"
 7. Copy the token
 
-> Once you've finished extracting the URLs you need, you can delete the token from the Settings tab.
+> Once you're done, you can delete the token from the Settings tab.
 
 ### 4. Run it
 
 ```bash
 python3 dropbox_extractor.py "https://www.dropbox.com/sh/YOUR_SHARED_LINK" \
   --token "YOUR_API_TOKEN" \
-  --output results.csv
+  --output ~/Desktop/results.csv
 ```
 
 ---
@@ -54,12 +56,6 @@ python3 dropbox_extractor.py <shared_folder_url> [--token TOKEN] [--format csv|j
 | `--format` | `csv` (default) or `json` |
 | `--output` / `-o` | Output file path — defaults to stdout |
 
-### Save to Desktop
-
-```bash
-python3 dropbox_extractor.py "FOLDER_URL" --token "YOUR_TOKEN" --output ~/Desktop/results.csv
-```
-
 ### Set token as environment variable (avoids typing it every time)
 
 ```bash
@@ -74,14 +70,14 @@ python3 dropbox_extractor.py "FOLDER_URL" --output results.csv
 | Column | Description |
 |---|---|
 | `name` | File name |
-| `path` | Full path within the folder (e.g. `Subfolder/Nested/file.pdf`) |
-| `url` | Dropbox shared link — opens the file in browser |
+| `path` | Full path within the folder (e.g. `Subfolder/Nested/file.mp4`) |
+| `folder_url` | Root shared folder URL — navigate here to find the file |
 
 ---
 
 ## Notes
 
 - The folder must be **publicly shared** ("Anyone with the link can view")
-- Trashed files are excluded
-- For very large folders the script may take a minute — it handles pagination automatically
-- Once you've extracted the URLs you need, you can delete your API token in the Dropbox app settings
+- Hidden macOS files (`._*`, `.DS_Store`) are automatically excluded
+- For very large folders the script may take a few minutes — it handles pagination automatically
+- Once you've extracted what you need, you can delete your API token in the Dropbox app settings

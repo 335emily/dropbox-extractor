@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-dropbox_extractor.py — Recursively extract file URLs from a public Dropbox shared folder.
+dropbox_extractor.py — Recursively extract file names and paths from a public Dropbox shared folder.
 
 Usage:
     python3 dropbox_extractor.py <shared_folder_url> [--format csv|json] [--output file.csv]
@@ -21,55 +21,49 @@ import os
 import sys
 
 import dropbox
-from dropbox.files import FolderMetadata, FileMetadata, ListFolderArg, SharedLink
+from dropbox.files import FolderMetadata, FileMetadata, SharedLink
 
 
-def list_files_recursive(dbx, path: str = "", shared_link_url: str = None, folder_path: str = ""):
-    shared_link = SharedLink(url=shared_link_url) if shared_link_url else None
-
-    try:
-        if shared_link:
-            result = dbx.files_list_folder(
-                path=path,
-                shared_link=shared_link,
-                recursive=False,
-            )
-        else:
-            result = dbx.files_list_folder(path=path, recursive=False)
-    except dropbox.exceptions.ApiError as e:
-        sys.exit(f"Error listing folder: {e}")
+def list_files(dbx, shared_link_url: str, subfolder_path: str = "", display_path: str = ""):
+    cursor = None
 
     while True:
-        for entry in result.entries:
-            entry_path = f"{folder_path}/{entry.name}" if folder_path else entry.name
-            if isinstance(entry, FolderMetadata):
-                yield from list_files_recursive(
-                    dbx,
-                    path=entry.path_lower,
-                    shared_link_url=shared_link_url,
-                    folder_path=entry_path,
+        try:
+            if cursor:
+                result = dbx.files_list_folder_continue(cursor)
+            else:
+                result = dbx.files_list_folder(
+                    path=subfolder_path,
+                    shared_link=SharedLink(url=shared_link_url),
+                    recursive=False,
                 )
+        except dropbox.exceptions.ApiError as e:
+            sys.exit(f"Error listing folder: {e}")
+
+        for entry in result.entries:
+            # Skip hidden macOS metadata files
+            if entry.name.startswith("._") or entry.name == ".DS_Store":
+                continue
+
+            entry_display = f"{display_path}/{entry.name}" if display_path else entry.name
+            entry_sub = f"{subfolder_path}/{entry.name}" if subfolder_path else f"/{entry.name}"
+
+            if isinstance(entry, FolderMetadata):
+                yield from list_files(dbx, shared_link_url, entry_sub, entry_display)
             elif isinstance(entry, FileMetadata):
-                # Construct a direct shared link for the file
-                try:
-                    link_meta = dbx.sharing_create_shared_link_with_settings(entry.path_lower)
-                    url = link_meta.url
-                except dropbox.exceptions.ApiError:
-                    # Link may already exist — fetch it
-                    try:
-                        links = dbx.sharing_list_shared_links(path=entry.path_lower, direct_only=True)
-                        url = links.links[0].url if links.links else ""
-                    except dropbox.exceptions.ApiError:
-                        url = ""
+                file_meta = dbx.sharing_get_shared_link_metadata(
+                    url=shared_link_url,
+                    path=entry_sub,
+                )
                 yield {
                     "name": entry.name,
-                    "path": entry_path,
-                    "url": url,
+                    "path": entry_display,
+                    "url": file_meta.url,
                 }
 
         if not result.has_more:
             break
-        result = dbx.files_list_folder_continue(result.cursor)
+        cursor = result.cursor
 
 
 def write_csv(files, output):
@@ -86,7 +80,7 @@ def write_json(files, output):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Recursively extract file URLs from a public Dropbox shared folder."
+        description="Recursively extract file names and paths from a public Dropbox shared folder."
     )
     parser.add_argument(
         "folder",
@@ -120,8 +114,15 @@ def main():
     print(f"Connecting to Dropbox...", file=sys.stderr)
     dbx = dropbox.Dropbox(args.token)
 
+    # Get the root folder name from the shared link metadata
+    try:
+        meta = dbx.sharing_get_shared_link_metadata(args.folder)
+        root_name = meta.name
+    except dropbox.exceptions.ApiError:
+        root_name = ""
+
     print(f"Traversing shared folder...", file=sys.stderr)
-    files = list_files_recursive(dbx, path="", shared_link_url=args.folder)
+    files = list_files(dbx, shared_link_url=args.folder, display_path=root_name)
 
     if args.output:
         with open(args.output, "w", newline="", encoding="utf-8") as f:
