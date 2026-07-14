@@ -34,7 +34,7 @@ You need your own free API token — **do not share or reuse someone else's**.
 6. Go to the **Settings** tab → scroll to **OAuth 2** → click **Generate** under "Generated access token"
 7. Copy the token
 
-> Once you're done, you can delete the token from the Settings tab.
+> Once you're done, you can delete the app entirely from the [App Console](https://www.dropbox.com/developers/apps) to fully revoke access.
 
 ### 4. Run it
 
@@ -83,4 +83,4 @@ python3 dropbox_extractor.py "FOLDER_URL" --output results.csv
 - The folder must be **publicly shared** ("Anyone with the link can view")
 - Hidden macOS files (`._*`, `.DS_Store`) are automatically excluded
 - For very large folders the script may take a few minutes — it handles pagination automatically
-- Once you've extracted what you need, you can delete your API token in the Dropbox app settings
+- Once you've extracted what you need, delete the app from the [Dropbox App Console](https://www.dropbox.com/developers/apps) to fully revoke access
